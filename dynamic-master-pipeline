@@ -1,0 +1,15 @@
+node {
+    def services = ['kyc-service', 'notification-service', 'user-profile-service', 'user-service']
+    def parallelStages = [:]
+
+    for (service in services) {
+        parallelStages["Build ${service}"] = {
+            stage("Build ${service}") {
+                echo "Triggering build for ${service} ..."
+                build job: service, wait: true
+            }
+        }
+    }
+
+    parallel parallelStages
+}

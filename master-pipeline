@@ -2,23 +2,57 @@ pipeline {
     agent any
 
     environment {
-        // Define environment variables for better configuration management
-        BUILD_TIMEOUT = 30 // Maximum timeout for each service build (in minutes)
+        BUILD_TIMEOUT = 30
     }
 
     options {
-        // Fail fast if a stage fails and set a timeout for the pipeline
         buildDiscarder(logRotator(numToKeepStr: '10'))
-        timeout(time: 90, unit: 'MINUTES') // Entire pipeline timeout
+        timeout(time: 90, unit: 'MINUTES')
     }
 
     stages {
-        stage('Build Services in Parallel') {
+        stage('Deployment Preparation') {
+            steps {
+                echo "Preparing for deployment of Kafka and Database"
+            }
+        }
+
+        stage('Apply Kafka & Zookeeper') {
+            steps {
+                echo "Applying Kafka & Zookeeper configurations"
+                bat "kubectl apply -f kafka-zookeeper.yml"
+                bat "kubectl rollout status deployment/kafka-deployment --timeout=600s"
+                bat "kubectl rollout status deployment/zookeeper-deployment --timeout=600s"
+
+                echo "Kafka deployed successfully."
+            }
+        }
+
+        stage('Apply Database Services') {
+            steps {
+                echo "Applying database configurations"
+                bat "kubectl apply -f database.yml"
+               
+               // For windows, sleep will need to be converted into something else like a ping command or the timeout command
+                bat "timeout /t 300 /nobreak" // example: timeout 5min
+                echo "Database deployed successfully."
+            }
+        }
+        
+       stage('Build Services in Parallel') {
             parallel {
-                stage('Build KYC Service') {
+
+                stage('Build User Profile Service') {
                     steps {
-                        echo "Triggering build for kyc-service ..."
-                        build job: 'kyc-service', wait: true
+                        echo "Triggering build for user-profile-service ..."
+                        build job: 'user-profile-service', wait: true
+                    }
+                }
+
+                stage('Build User Service') {
+                    steps {
+                        echo "Triggering build for user-service ..."
+                        build job: 'user-service', wait: true
                     }
                 }
                 stage('Build Notification Service') {
@@ -27,19 +61,48 @@ pipeline {
                         build job: 'notification-service', wait: true
                     }
                 }
-                stage('Build User Profile Service') {
+
+                stage('Build KYC Service') {
                     steps {
-                        echo "Triggering build for user-profile-service ..."
-                        build job: 'user-profile-service', wait: true
-                    }
-                }
-                stage('Build User Service') {
-                    steps {
-                        echo "Triggering build for user-service ..."
-                        build job: 'user-service', wait: true
+                        echo "Triggering build for kyc-service ..."
+                        build job: 'kyc-service', wait: true
                     }
                 }
             }
+        }
+        stage('Verification Stage'){
+             steps {
+               echo "Verification stage for kafka and databases"
+                bat "timeout /t 60 /nobreak"
+                echo "All services deployed"
+           }
+        }
+        stage('Deploy Producers and Consumers'){
+             stage('Deploy User Profile Service'){
+                steps{
+                   echo "Deploying user profile service"
+                   build job: 'deploy-user-profile-service', wait: true
+                }
+             }
+
+             stage('Deploy User Service'){
+                 steps{
+                      echo "Deploying User Service"
+                     build job: 'deploy-user-service', wait: true
+                    }
+             }
+            stage('Deploy Notification Service'){
+                  steps{
+                     echo "Deploying Notification Service"
+                     build job: 'deploy-notification-service', wait: true
+                   }
+            }
+            stage('Deploy KYC Service'){
+                steps{
+                     echo "Deploying KYC Service"
+                    build job: 'deploy-kyc-service', wait: true
+                    }
+             }
         }
     }
 

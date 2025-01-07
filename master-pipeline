@@ -1,0 +1,60 @@
+pipeline {
+    agent any
+
+    environment {
+        // Define environment variables for better configuration management
+        BUILD_TIMEOUT = 30 // Maximum timeout for each service build (in minutes)
+    }
+
+    options {
+        // Fail fast if a stage fails and set a timeout for the pipeline
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timeout(time: 90, unit: 'MINUTES') // Entire pipeline timeout
+    }
+
+    stages {
+        stage('Build Services in Parallel') {
+            parallel {
+                stage('Build KYC Service') {
+                    steps {
+                        echo "Triggering build for kyc-service ..."
+                        build job: 'kyc-service', wait: true
+                    }
+                }
+                stage('Build Notification Service') {
+                    steps {
+                        echo "Triggering build for notification-service ..."
+                        build job: 'notification-service', wait: true
+                    }
+                }
+                stage('Build User Profile Service') {
+                    steps {
+                        echo "Triggering build for user-profile-service ..."
+                        build job: 'user-profile-service', wait: true
+                    }
+                }
+                stage('Build User Service') {
+                    steps {
+                        echo "Triggering build for user-service ..."
+                        build job: 'user-service', wait: true
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Master pipeline completed."
+        }
+        success {
+            echo "All pipelines executed successfully!"
+        }
+        failure {
+            echo "One or more pipelines failed. Check logs for details."
+        }
+        cleanup {
+            echo "Cleaning up resources..."
+        }
+    }
+}

@@ -31,7 +31,14 @@ pipeline {
         stage('Apply Database Services') {
             steps {
                 echo "Applying database configurations"
-                bat "kubectl apply -f database.yml"
+
+                
+                 bat """
+                    kubectl apply -f kyc-service-db.yml
+                    kubectl apply -f user-service-db.yml
+                    kubectl apply -f user-profile-service-db.yml
+                 """
+                
                
                // For windows, sleep will need to be converted into something else like a ping command or the timeout command
                 bat "timeout /t 300 /nobreak" // example: timeout 5min

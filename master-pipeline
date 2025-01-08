@@ -17,16 +17,16 @@ pipeline {
             }
         }
 
-        stage('Apply Kafka & Zookeeper') {
-            steps {
-                echo "Applying Kafka & Zookeeper configurations"
-                bat "kubectl apply -f kafka-zookeeper.yml"
-                bat "kubectl rollout status deployment/kafka-deployment --timeout=600s"
-                bat "kubectl rollout status deployment/zookeeper-deployment --timeout=600s"
+     //   stage('Apply Kafka & Zookeeper') {
+     //       steps {
+     //           echo "Applying Kafka & Zookeeper configurations"
+     //           bat "kubectl apply -f kafka-zookeeper.yml"
+     //           bat "kubectl rollout status deployment/kafka-deployment --timeout=600s"
+     //           bat "kubectl rollout status deployment/zookeeper-deployment --timeout=600s"
 
-                echo "Kafka deployed successfully."
-            }
-        }
+     //           echo "Kafka deployed successfully."
+     //      }
+     //   }
 
         stage('Apply Database Services') {
             steps {
